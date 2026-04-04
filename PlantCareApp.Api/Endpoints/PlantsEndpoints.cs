@@ -1,95 +1,141 @@
-﻿using PlantCareApp.Api.Dtos;
+﻿using Microsoft.EntityFrameworkCore;
+using PlantCareApp.Api.Data;
+using PlantCareApp.Api.Dtos;
+using PlantCareApp.Api.Models;
 
 namespace PlantCareApp.Api.Endpoints;
 
 public static class PlantsEndpoints
 {
     private const string GetPlantsEndpointName = "GetPlants";
-    
-    private static readonly List<PlantDto> Plants =
-    [
-        new (1, "Butterhead Lettuce", "Salad", 2, new DateOnly(2026, 4, 3), "Keep soil consistently moist. Harvest outer leaves first.", new DateOnly(2026, 4, 3)),
-        new (2, "Garden Strawberry", "Strawberry", 3, new DateOnly(2026, 4, 3), "Remove runners to focus energy on fruit production.", new DateOnly(2026, 4, 3)),
-        new (3, "Spearmint", "Mint", 2, new DateOnly(2025, 4, 3), "Keep in a container to prevent invasive spreading.", new DateOnly(2026, 4, 3)),
-    ];
 
     public static void MapPlantsEndpoint(this WebApplication app)
     {
         var group = app.MapGroup("api/plants");
         
+        // TODO: Why here we use PlantDto and not PlantDetailsDto?
+        // TODO: Learn more about  .AsNoTracking()
+        
         // GET /api/plants
-        group.MapGet("/", () => Plants)
-            .WithName(GetPlantsEndpointName);
+        group.MapGet("/", async (AppDbContext dbContext)
+            => await dbContext.Plants
+                .Include(plant => plant.Type)
+                .Select(plant => new PlantDto(
+                    plant.Id,
+                    plant.Name,
+                    plant.Type!.TypeName,
+                    plant.WateringIntervalDays,
+                    plant.LastWateredDate,
+                    plant.Notes,
+                    plant.CreatedAtDate
+                ))
+                .AsNoTracking()
+                .ToListAsync()
+            );
+           
 
         // GET /api/plants/1
-        group.MapGet("/{plantId:int}", (int plantId) =>
+        group.MapGet("/{plantId:int}", async (int plantId, AppDbContext dbContext) =>
         {
-            var plant = Plants.Find(plant => plant.Id == plantId);   
-            return plant is null ? Results.NotFound() : Results.Ok(plant);
-        });
+            var plant = await dbContext.Plants.FindAsync(plantId);
+            
+            return plant is null ? Results.NotFound() : Results.Ok(
+                new PlantDetailsDto(
+                    plant.Id,
+                    plant.Name,
+                    plant.TypeId,
+                    plant.WateringIntervalDays,
+                    plant.LastWateredDate,
+                    plant.Notes,
+                    plant.CreatedAtDate
+                )
+            );
+        }).WithName(GetPlantsEndpointName);
 
         // POST /plants
-        group.MapPost("/", (CreatePlantDto createPlantDto) =>
+        group.MapPost("/", async (CreatePlantDto createPlantDto, AppDbContext dbContext) =>
         {
-            PlantDto newPlant = new(
-                Plants.Count + 1,
-                createPlantDto.Name,
-                createPlantDto.Type,
-                createPlantDto.WateringIntervalDays,
-                createPlantDto.LastWateredDate,
-                createPlantDto.Notes,
-                DateOnly.FromDateTime(DateTime.Now)
+            Plant plant = new()
+            {
+                Name = createPlantDto.Name,
+                TypeId = createPlantDto.TypeId,
+                WateringIntervalDays = createPlantDto.WateringIntervalDays,
+                LastWateredDate = createPlantDto.CreatedAtDate,
+                Notes = createPlantDto.Notes,
+                CreatedAtDate = createPlantDto.CreatedAtDate
+            };
+
+            dbContext.Plants.Add(plant);
+            await dbContext.SaveChangesAsync();
+            
+            // TODO: Does this dto make sense?
+            PlantDetailsDto plantDetailsDto = new(
+                plant.Id,
+                plant.Name,
+                plant.TypeId,
+                plant.WateringIntervalDays,
+                plant.LastWateredDate,
+                plant.Notes,
+                plant.CreatedAtDate
             );
 
-            Plants.Add(newPlant);
-
-            return Results.CreatedAtRoute(GetPlantsEndpointName, new { id = newPlant.Id }, newPlant);
+            return Results.CreatedAtRoute(GetPlantsEndpointName, new { id = plant.Id }, plantDetailsDto);
         });
 
         // PUT /api/plants/1
-        group.MapPut("/{plantId:int}", (int plantId, UpdatePlantDto updatePlantDto) =>
+        group.MapPut("/{plantId:int}", async (
+            int plantId, 
+            UpdatePlantDto updatePlantDto, 
+            AppDbContext dbContext) =>
         {
-            var plantIndex = Plants.FindIndex(plant => plant.Id == plantId);
-
-            if (plantIndex == -1)
+            var existingPlant = await dbContext.Plants.FindAsync(plantId);
+            
+            if (existingPlant is null)
             {
                 return Results.NotFound();
             }
 
-            var updatedPlant = Plants[plantIndex] with
-            {
-                Name = updatePlantDto.Name,
-                Type = updatePlantDto.Type,
-                WateringIntervalDays = updatePlantDto.WateringIntervalDays,
-                LastWateredDate = updatePlantDto.LastWateredDate,
-                Notes = updatePlantDto.Notes,
-            };
+            existingPlant.Name = updatePlantDto.Name;
+            existingPlant.TypeId = updatePlantDto.TypeId;
+            existingPlant.WateringIntervalDays = updatePlantDto.WateringIntervalDays;
+            existingPlant.LastWateredDate = updatePlantDto.LastWateredDate;
+            existingPlant.Notes = updatePlantDto.Notes;
 
-            Plants[plantIndex] = updatedPlant;
+            await dbContext.SaveChangesAsync();
 
             return Results.NoContent();
         });
         
         // PATCH /api/plants/1/water
-        group.MapPatch("/{plantId:int}/water", (int plantId) =>
+        group.MapPatch("/{plantId:int}/water", async (int plantId, AppDbContext dbContext) =>
         {
-            var plantIndex = Plants.FindIndex(plant => plant.Id == plantId);
+            var existingPlant = await dbContext.Plants.FindAsync(plantId);
 
-            if (plantIndex == -1)
+            if (existingPlant is null)
             {
                 return Results.NotFound();
             }
 
-            var updatedPlant = Plants[plantIndex] with { LastWateredDate = DateOnly.FromDateTime(DateTime.Now) };
-            Plants[plantIndex] = updatedPlant;
+            existingPlant.LastWateredDate = DateOnly.FromDateTime(DateTime.Now);
+            await dbContext.SaveChangesAsync();
 
-            return Results.Ok(updatedPlant);
+            return Results.Ok(new PlantDetailsDto(
+                existingPlant.Id,
+                existingPlant.Name,
+                existingPlant.TypeId,
+                existingPlant.WateringIntervalDays,
+                existingPlant.LastWateredDate,
+                existingPlant.Notes,
+                existingPlant.CreatedAtDate
+            ));
         });
 
         // DELETE /api/plants/1
-        group.MapDelete("/{plantId:int}", (int plantId) =>
+        group.MapDelete("/{plantId:int}", async (int plantId, AppDbContext dbContext) =>
         {
-            Plants.RemoveAll(plant => plant.Id == plantId);
+            await dbContext.Plants
+                .Select(plant => plant.Id == plantId)
+                .ExecuteDeleteAsync();
 
             return Results.NoContent();
         });

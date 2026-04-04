@@ -14,8 +14,13 @@ public static class DataExtensions
 
     public static void AddDb(this WebApplicationBuilder builder)
     {
+        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+        // TODO: consider "using" keyword.
+        builder.Services.AddScoped<AppDbContext>();
+        
         builder.Services.AddSqlite<AppDbContext>(
-            builder.Configuration.GetConnectionString("DefaultConnection"),
+            connectionString,
             optionsAction: options => options.UseSeeding((context, _) =>
             {
                 if (!context.Set<PlantType>().Any())
