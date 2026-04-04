@@ -14,28 +14,28 @@ Content-Type: application/json
 
 {
     "name": "Mini Cucumber",
-    "type": "Cucumber",
+    "typeId": 2,
     "wateringIntervalDays": 2,
-    "lastWateredDate": "2026-04-03",
-    "notes": "Train vines vertically to save space and improve air circulation."
+    "notes": "Train vines vertically to save space and improve air circulation.",
+    "createdAtDate": "2026-04-03"
 }
 
 ###
 
-PUT http://localhost:5050/api/plants/4
+PUT http://localhost:5050/api/plants/3
 Content-Type: application/json
 
 {
   "name": "Mini Big Cucumber",
-  "type": "Cucumber",
+  "typeId": 2,
   "wateringIntervalDays": 2,
-  "lastWateredDate": "2026-04-03",
+  "lastWateredDate": "2024-04-03",
   "notes": "Train vines vertically to save space and improve air circulation."
 }
 
 ###
 
-DELETE http://localhost:5050/api/plants/4
+DELETE http://localhost:5050/api/plants/1
 
 ###
 

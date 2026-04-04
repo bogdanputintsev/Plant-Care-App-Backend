@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using PlantCareApp.Api.Data;
 using PlantCareApp.Api.Dtos;
 using PlantCareApp.Api.Models;
@@ -79,7 +79,7 @@ public static class PlantsEndpoints
                 plant.CreatedAtDate
             );
 
-            return Results.CreatedAtRoute(GetPlantsEndpointName, new { id = plant.Id }, plantDetailsDto);
+            return Results.CreatedAtRoute(GetPlantsEndpointName, new { plantId = plant.Id }, plantDetailsDto);
         });
 
         // PUT /api/plants/1
@@ -134,7 +134,7 @@ public static class PlantsEndpoints
         group.MapDelete("/{plantId:int}", async (int plantId, AppDbContext dbContext) =>
         {
             await dbContext.Plants
-                .Select(plant => plant.Id == plantId)
+                .Where(plant => plant.Id == plantId)
                 .ExecuteDeleteAsync();
 
             return Results.NoContent();
