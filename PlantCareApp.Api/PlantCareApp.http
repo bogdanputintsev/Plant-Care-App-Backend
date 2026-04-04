@@ -17,7 +17,6 @@ Content-Type: application/json
     "type": "Cucumber",
     "wateringIntervalDays": 2,
     "lastWateredDate": "2026-04-03",
-    "sunExposure": "Full Sun",
     "notes": "Train vines vertically to save space and improve air circulation."
 }
 
@@ -31,7 +30,6 @@ Content-Type: application/json
   "type": "Cucumber",
   "wateringIntervalDays": 2,
   "lastWateredDate": "2026-04-03",
-  "sunExposure": "Full Sun",
   "notes": "Train vines vertically to save space and improve air circulation."
 }
 

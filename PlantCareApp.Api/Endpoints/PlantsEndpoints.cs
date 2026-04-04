@@ -8,9 +8,9 @@ public static class PlantsEndpoints
     
     private static readonly List<PlantDto> Plants =
     [
-        new (1, "Butterhead Lettuce", "Salad", "Partial Shade", 2, new DateOnly(2026, 4, 3), "Keep soil consistently moist. Harvest outer leaves first.", new DateOnly(2026, 4, 3)),
-        new (2, "Garden Strawberry", "Strawberry", "Full Sun", 3, new DateOnly(2026, 4, 3), "Remove runners to focus energy on fruit production.", new DateOnly(2026, 4, 3)),
-        new (3, "Spearmint", "Mint", "Partial Shade", 2, new DateOnly(2025, 4, 3), "Keep in a container to prevent invasive spreading.", new DateOnly(2026, 4, 3)),
+        new (1, "Butterhead Lettuce", "Salad", 2, new DateOnly(2026, 4, 3), "Keep soil consistently moist. Harvest outer leaves first.", new DateOnly(2026, 4, 3)),
+        new (2, "Garden Strawberry", "Strawberry", 3, new DateOnly(2026, 4, 3), "Remove runners to focus energy on fruit production.", new DateOnly(2026, 4, 3)),
+        new (3, "Spearmint", "Mint", 2, new DateOnly(2025, 4, 3), "Keep in a container to prevent invasive spreading.", new DateOnly(2026, 4, 3)),
     ];
 
     public static void MapPlantsEndpoint(this WebApplication app)
@@ -35,7 +35,6 @@ public static class PlantsEndpoints
                 Plants.Count + 1,
                 createPlantDto.Name,
                 createPlantDto.Type,
-                createPlantDto.SunExposure,
                 createPlantDto.WateringIntervalDays,
                 createPlantDto.LastWateredDate,
                 createPlantDto.Notes,
@@ -56,16 +55,17 @@ public static class PlantsEndpoints
             {
                 return Results.NotFound();
             }
-    
-            Plants[plantIndex] = new PlantDto(
-                plantId,
-                updatePlantDto.Name,
-                updatePlantDto.Type,
-                updatePlantDto.SunExposure,
-                updatePlantDto.WateringIntervalDays,
-                updatePlantDto.LastWateredDate,
-                updatePlantDto.Notes,
-                updatePlantDto.CreatedAtDate);
+
+            var updatedPlant = Plants[plantIndex] with
+            {
+                Name = updatePlantDto.Name,
+                Type = updatePlantDto.Type,
+                WateringIntervalDays = updatePlantDto.WateringIntervalDays,
+                LastWateredDate = updatePlantDto.LastWateredDate,
+                Notes = updatePlantDto.Notes,
+            };
+
+            Plants[plantIndex] = updatedPlant;
 
             return Results.NoContent();
         });
