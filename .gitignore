@@ -209,3 +209,13 @@ FakesAssemblies/
 
 # JetBrains Rider
 *.sln.iml
+
+# SQLite database files                                                                                                                                                                                                                  
+*.db                                                                                                                                                                                                                                     
+*.sqlite                                                                                                                                                                                                                                 
+*.sqlite3
+
+# SQLite journal/WAL files
+*.db-shm
+*.db-wal
+*.db-journal
