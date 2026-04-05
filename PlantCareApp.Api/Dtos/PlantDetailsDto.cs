@@ -1,4 +1,6 @@
-﻿namespace PlantCareApp.Api.Dtos;
+﻿using PlantCareApp.Api.Models;
+
+namespace PlantCareApp.Api.Dtos;
 
 public record PlantDetailsDto (
     int Id,

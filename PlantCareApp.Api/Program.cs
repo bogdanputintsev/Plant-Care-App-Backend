@@ -3,10 +3,15 @@ using PlantCareApp.Api.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddValidation();
+builder.Services.AddProblemDetails();
 builder.AddDb();
 
 var app = builder.Build();
+app.UseExceptionHandler();
 app.MapPlantsEndpoint();
-app.MigrateDb();
+if (app.Environment.IsDevelopment())
+{
+    app.MigrateDb();
+}
 
 app.Run();

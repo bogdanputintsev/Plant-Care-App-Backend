@@ -1,34 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using PlantCareApp.Api.Data;
 using PlantCareApp.Api.Dtos;
-using PlantCareApp.Api.Models;
+using PlantCareApp.Api.Mapping;
 
 namespace PlantCareApp.Api.Endpoints;
 
 public static class PlantsEndpoints
 {
-    private const string GetPlantsEndpointName = "GetPlants";
+    private const string GetPlantByIdEndpointName = "GetPlantById";
 
     public static void MapPlantsEndpoint(this WebApplication app)
     {
         var group = app.MapGroup("api/plants");
         
-        // TODO: Why here we use PlantDto and not PlantDetailsDto?
-        // TODO: Learn more about  .AsNoTracking()
-        
         // GET /api/plants
         group.MapGet("/", async (AppDbContext dbContext)
             => await dbContext.Plants
                 .Include(plant => plant.Type)
-                .Select(plant => new PlantDto(
-                    plant.Id,
-                    plant.Name,
-                    plant.Type!.TypeName,
-                    plant.WateringIntervalDays,
-                    plant.LastWateredDate,
-                    plant.Notes,
-                    plant.CreatedAtDate
-                ))
+                .Select(plant => plant.ToSummaryDto())
                 .AsNoTracking()
                 .ToListAsync()
             );
@@ -37,49 +26,28 @@ public static class PlantsEndpoints
         // GET /api/plants/1
         group.MapGet("/{plantId:int}", async (int plantId, AppDbContext dbContext) =>
         {
-            var plant = await dbContext.Plants.FindAsync(plantId);
+            var plant = await dbContext.Plants
+                .Include(plant => plant.Type)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(plant => plant.Id == plantId);
             
-            return plant is null ? Results.NotFound() : Results.Ok(
-                new PlantDetailsDto(
-                    plant.Id,
-                    plant.Name,
-                    plant.TypeId,
-                    plant.WateringIntervalDays,
-                    plant.LastWateredDate,
-                    plant.Notes,
-                    plant.CreatedAtDate
-                )
-            );
-        }).WithName(GetPlantsEndpointName);
+            return plant is null ? Results.NotFound() : Results.Ok(plant.ToSummaryDto());
+        }).WithName(GetPlantByIdEndpointName);
 
-        // POST /plants
+        // POST /api/plants
         group.MapPost("/", async (CreatePlantDto createPlantDto, AppDbContext dbContext) =>
         {
-            Plant plant = new()
+            var typeExists = await TypeIdIsValid(createPlantDto.TypeId, dbContext);
+            if (!typeExists)
             {
-                Name = createPlantDto.Name,
-                TypeId = createPlantDto.TypeId,
-                WateringIntervalDays = createPlantDto.WateringIntervalDays,
-                LastWateredDate = createPlantDto.CreatedAtDate,
-                Notes = createPlantDto.Notes,
-                CreatedAtDate = createPlantDto.CreatedAtDate
-            };
-
-            dbContext.Plants.Add(plant);
+                return Results.BadRequest("Invalid typeId: plant type does not exist.");
+            }
+            
+            var newPlant = createPlantDto.ToEntity();
+            dbContext.Plants.Add(newPlant);
             await dbContext.SaveChangesAsync();
             
-            // TODO: Does this dto make sense?
-            PlantDetailsDto plantDetailsDto = new(
-                plant.Id,
-                plant.Name,
-                plant.TypeId,
-                plant.WateringIntervalDays,
-                plant.LastWateredDate,
-                plant.Notes,
-                plant.CreatedAtDate
-            );
-
-            return Results.CreatedAtRoute(GetPlantsEndpointName, new { plantId = plant.Id }, plantDetailsDto);
+            return Results.CreatedAtRoute(GetPlantByIdEndpointName, new { plantId = newPlant.Id }, newPlant.ToDetailsDto());
         });
 
         // PUT /api/plants/1
@@ -88,7 +56,19 @@ public static class PlantsEndpoints
             UpdatePlantDto updatePlantDto, 
             AppDbContext dbContext) =>
         {
-            var existingPlant = await dbContext.Plants.FindAsync(plantId);
+            var typeExists = await TypeIdIsValid(updatePlantDto.TypeId, dbContext);
+            if (!typeExists)
+            {
+                return Results.BadRequest("Invalid typeId: plant type does not exist.");
+            }
+
+            if (!DateIsBeforeNow(updatePlantDto.LastWateredDate))
+            {
+                return Results.BadRequest("Invalid LastWateredDate: date can't be in a future.");
+            }
+            
+            var existingPlant = await dbContext.Plants
+                .FirstOrDefaultAsync(plant => plant.Id == plantId);
             
             if (existingPlant is null)
             {
@@ -109,36 +89,39 @@ public static class PlantsEndpoints
         // PATCH /api/plants/1/water
         group.MapPatch("/{plantId:int}/water", async (int plantId, AppDbContext dbContext) =>
         {
-            var existingPlant = await dbContext.Plants.FindAsync(plantId);
-
+            var existingPlant = await dbContext.Plants
+                .FirstOrDefaultAsync(plant => plant.Id == plantId);
+            
             if (existingPlant is null)
             {
                 return Results.NotFound();
             }
 
-            existingPlant.LastWateredDate = DateOnly.FromDateTime(DateTime.Now);
+            existingPlant.LastWateredDate = DateOnly.FromDateTime(DateTime.UtcNow);
             await dbContext.SaveChangesAsync();
 
-            return Results.Ok(new PlantDetailsDto(
-                existingPlant.Id,
-                existingPlant.Name,
-                existingPlant.TypeId,
-                existingPlant.WateringIntervalDays,
-                existingPlant.LastWateredDate,
-                existingPlant.Notes,
-                existingPlant.CreatedAtDate
-            ));
+            return Results.Ok(existingPlant.ToDetailsDto());
         });
 
         // DELETE /api/plants/1
         group.MapDelete("/{plantId:int}", async (int plantId, AppDbContext dbContext) =>
         {
-            await dbContext.Plants
+            var numberOfDeletedRows = await dbContext.Plants
                 .Where(plant => plant.Id == plantId)
                 .ExecuteDeleteAsync();
 
-            return Results.NoContent();
-        });
+            return numberOfDeletedRows == 0 ? Results.NotFound() : Results.NoContent();
+        }); 
+    }
+    
+    private static async Task<bool> TypeIdIsValid(int typeId, AppDbContext dbContext)
+    {
+        return await dbContext.PlantTypes.AnyAsync(type => type.Id == typeId);
+    }
 
+    private static bool DateIsBeforeNow(DateOnly date)
+    {
+        var now = DateOnly.FromDateTime(DateTime.UtcNow);
+        return date <= now;
     }
 }

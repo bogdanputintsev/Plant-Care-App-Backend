@@ -4,8 +4,8 @@ namespace PlantCareApp.Api.Dtos;
 
 public record UpdatePlantDto(
     [Required][StringLength(50)] string Name,
-    [Required][Range(0, 60)] int TypeId,
+    [Required] int TypeId,
     [Required][Range(1, 30)] int WateringIntervalDays,
-    [Required] DateOnly LastWateredDate,
-    [Required] string Notes
+    DateOnly LastWateredDate,
+    string Notes
 );

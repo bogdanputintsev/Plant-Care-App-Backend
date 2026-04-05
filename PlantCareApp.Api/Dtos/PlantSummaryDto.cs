@@ -1,8 +1,9 @@
 ﻿namespace PlantCareApp.Api.Dtos;
 
-public record PlantDto (
+public record PlantSummaryDto (
     int Id,
     string Name,
+    int TypeId,
     string Type,
     int WateringIntervalDays,
     DateOnly LastWateredDate,

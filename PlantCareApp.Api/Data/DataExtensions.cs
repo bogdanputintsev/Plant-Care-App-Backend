@@ -16,26 +16,23 @@ public static class DataExtensions
     {
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-        // TODO: consider "using" keyword.
-        builder.Services.AddScoped<AppDbContext>();
-        
         builder.Services.AddSqlite<AppDbContext>(
             connectionString,
             optionsAction: options => options.UseSeeding((context, _) =>
             {
-                if (!context.Set<PlantType>().Any())
-                {
-                    context.Set<PlantType>().AddRange(
-                        new PlantType { TypeName = "salad" },
-                        new PlantType { TypeName = "strawberry" },
-                        new PlantType { TypeName = "cucumber" },
-                        new PlantType { TypeName = "mint" },
-                        new PlantType { TypeName = "chilli" },
-                        new PlantType { TypeName = "bell-pepper" },
-                        new PlantType { TypeName = "radish" }
-                    );
-                    context.SaveChanges();
-                }
+                if (context.Set<PlantType>().Any()) return;
+                
+                context.Set<PlantType>().AddRange(
+                    new PlantType { TypeName = "salad" },
+                    new PlantType { TypeName = "strawberry" },
+                    new PlantType { TypeName = "cucumber" },
+                    new PlantType { TypeName = "mint" },
+                    new PlantType { TypeName = "chilli" },
+                    new PlantType { TypeName = "bell-pepper" },
+                    new PlantType { TypeName = "radish" }
+                );
+                
+                context.SaveChanges();
             }));
         
     }
