@@ -9,7 +9,7 @@ public static class PlantsEndpoints
 {
     private const string GetPlantByIdEndpointName = "GetPlantById";
 
-    public static void MapPlantsEndpoint(this WebApplication app)
+    public static void MapPlantsEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("api/plants");
         
@@ -21,7 +21,6 @@ public static class PlantsEndpoints
                 .AsNoTracking()
                 .ToListAsync()
             );
-           
 
         // GET /api/plants/1
         group.MapGet("/{plantId:int}", async (int plantId, AppDbContext dbContext) =>
