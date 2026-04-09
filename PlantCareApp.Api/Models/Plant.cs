@@ -17,5 +17,9 @@ public class Plant
     public string Notes { get; set; } = string.Empty;
 
     public DateOnly CreatedAtDate { get; set; }
-    
+
+    public string UserId { get; set; } = string.Empty;
+
+    public ApplicationUser User { get; set; } = null!;
+
 }

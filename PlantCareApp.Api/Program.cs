@@ -9,8 +9,12 @@ builder.AddDb();
 
 var app = builder.Build();
 app.UseExceptionHandler();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapPlantsEndpoints();
 app.MapWeatherEndpoints();
+app.MapAuthEndpoints();
+
 if (app.Environment.IsDevelopment())
 {
     app.MigrateDb();

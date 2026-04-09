@@ -37,7 +37,7 @@ public static class PlantMappingExtensions
 
     extension(CreatePlantDto createPlantDto)
     {
-        public Plant ToEntity()
+        public Plant ToEntity(string userId)
         {
             var currentDate = DateOnly.FromDateTime(DateTime.UtcNow);
             
@@ -48,7 +48,8 @@ public static class PlantMappingExtensions
                 WateringIntervalDays = createPlantDto.WateringIntervalDays,
                 LastWateredDate = currentDate,
                 Notes = createPlantDto.Notes,
-                CreatedAtDate = currentDate
+                CreatedAtDate = currentDate,
+                UserId = userId
             };
 
         }

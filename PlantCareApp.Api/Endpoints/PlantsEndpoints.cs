@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using PlantCareApp.Api.Data;
 using PlantCareApp.Api.Dtos;
@@ -11,50 +12,64 @@ public static class PlantsEndpoints
 
     public static void MapPlantsEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("api/plants");
+        var group = app.MapGroup("api/plants").RequireAuthorization();
         
         // GET /api/plants
-        group.MapGet("/", async (AppDbContext dbContext)
-            => await dbContext.Plants
+        group.MapGet("/", async (ClaimsPrincipal principal, AppDbContext dbContext) =>
+        {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+            return await dbContext.Plants
+                .Where(plant => plant.UserId == userId)
                 .Include(plant => plant.Type)
                 .Select(plant => plant.ToSummaryDto())
                 .AsNoTracking()
-                .ToListAsync()
-            );
+                .ToListAsync();
+        });
+
 
         // GET /api/plants/1
-        group.MapGet("/{plantId:int}", async (int plantId, AppDbContext dbContext) =>
+        group.MapGet("/{plantId:int}", async (int plantId, ClaimsPrincipal principal, AppDbContext dbContext) =>
         {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
             var plant = await dbContext.Plants
+                .Where(plant => plant.Id == plantId && plant.UserId == userId)
                 .Include(plant => plant.Type)
                 .AsNoTracking()
-                .FirstOrDefaultAsync(plant => plant.Id == plantId);
-            
+                .FirstOrDefaultAsync();
+
             return plant is null ? Results.NotFound() : Results.Ok(plant.ToSummaryDto());
         }).WithName(GetPlantByIdEndpointName);
 
         // POST /api/plants
-        group.MapPost("/", async (CreatePlantDto createPlantDto, AppDbContext dbContext) =>
+        group.MapPost("/", async (CreatePlantDto createPlantDto, ClaimsPrincipal principal, AppDbContext dbContext) =>
         {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
             var typeExists = await TypeIdIsValid(createPlantDto.TypeId, dbContext);
             if (!typeExists)
             {
                 return Results.BadRequest("Invalid typeId: plant type does not exist.");
             }
-            
-            var newPlant = createPlantDto.ToEntity();
+
+            var newPlant = createPlantDto.ToEntity(userId);
             dbContext.Plants.Add(newPlant);
             await dbContext.SaveChangesAsync();
-            
+
             return Results.CreatedAtRoute(GetPlantByIdEndpointName, new { plantId = newPlant.Id }, newPlant.ToDetailsDto());
         });
 
+
         // PUT /api/plants/1
         group.MapPut("/{plantId:int}", async (
-            int plantId, 
-            UpdatePlantDto updatePlantDto, 
+            int plantId,
+            UpdatePlantDto updatePlantDto,
+            ClaimsPrincipal principal,
             AppDbContext dbContext) =>
         {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
             var typeExists = await TypeIdIsValid(updatePlantDto.TypeId, dbContext);
             if (!typeExists)
             {
@@ -65,10 +80,11 @@ public static class PlantsEndpoints
             {
                 return Results.BadRequest("Invalid LastWateredDate: date can't be in a future.");
             }
-            
+
             var existingPlant = await dbContext.Plants
-                .FirstOrDefaultAsync(plant => plant.Id == plantId);
-            
+                .Where(plant => plant.UserId == userId && plant.Id == plantId)
+                .FirstOrDefaultAsync();
+
             if (existingPlant is null)
             {
                 return Results.NotFound();
@@ -86,11 +102,14 @@ public static class PlantsEndpoints
         });
         
         // PATCH /api/plants/1/water
-        group.MapPatch("/{plantId:int}/water", async (int plantId, AppDbContext dbContext) =>
+        group.MapPatch("/{plantId:int}/water", async (int plantId, ClaimsPrincipal principal, AppDbContext dbContext) =>
         {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
             var existingPlant = await dbContext.Plants
-                .FirstOrDefaultAsync(plant => plant.Id == plantId);
-            
+                .Where(plant => plant.UserId == userId && plant.Id == plantId)
+                .FirstOrDefaultAsync();
+
             if (existingPlant is null)
             {
                 return Results.NotFound();
@@ -103,14 +122,25 @@ public static class PlantsEndpoints
         });
 
         // DELETE /api/plants/1
-        group.MapDelete("/{plantId:int}", async (int plantId, AppDbContext dbContext) =>
+        group.MapDelete("/{plantId:int}", async (int plantId, ClaimsPrincipal principal, AppDbContext dbContext) =>
         {
-            var numberOfDeletedRows = await dbContext.Plants
-                .Where(plant => plant.Id == plantId)
-                .ExecuteDeleteAsync();
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-            return numberOfDeletedRows == 0 ? Results.NotFound() : Results.NoContent();
-        }); 
+            var existingPlant = await dbContext.Plants
+                .Where(plant => plant.UserId == userId && plant.Id == plantId)
+                .FirstOrDefaultAsync();
+
+            if (existingPlant is null)
+            {
+                return Results.NotFound();
+            }
+
+            dbContext.Plants.Remove(existingPlant);
+            await dbContext.SaveChangesAsync();
+
+            return Results.NoContent();
+        });
+
     }
     
     private static async Task<bool> TypeIdIsValid(int typeId, AppDbContext dbContext)

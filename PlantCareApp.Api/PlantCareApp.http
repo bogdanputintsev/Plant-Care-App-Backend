@@ -1,7 +1,50 @@
 # For more info on HTTP files go to https://aka.ms/vs/httpfile
 
+###
+
+POST http://localhost:5050/api/auth/register
+Content-Type: application/json
+
+  {
+    "email": "test@example.com",
+    "password": "Password123!",
+    "fullName": "Test User",
+    "latitude": 50.0755,
+    "longitude": 14.4378,
+    "timezone": "Europe/Prague"
+  }
+
+###
+
+POST http://localhost:5050/api/auth/refresh
+Content-Type: application/json
+
+{ 
+  "refreshToken": "foIKhnVr+Z3pCuFop+u/hxuHVa+DyexxLsBKPDIqcevAamaMEh72qdUAnPTFEQ656ZnQ7MqAo+7zfJctq0ud8g=="
+}
+
+###
+
+POST http://localhost:5050/api/auth/logout
+Content-Type: application/json
+
+{ 
+  "refreshToken": "foIKhnVr+Z3pCuFop+u/hxuHVa+DyexxLsBKPDIqcevAamaMEh72qdUAnPTFEQ656ZnQ7MqAo+7zfJctq0ud8g=="
+}
+
+###
+
+POST http://localhost:5050/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "foIKhnVr+Z3pCuFop+u/hxuHVa+DyexxLsBKPDIqcevAamaMEh72qdUAnPTFEQ656ZnQ7MqAo+7zfJctq0ud8g=="
+}
+
+###
 
 GET http://localhost:5050/api/plants
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmYzk4NmYwMC1iNTUyLTRmZmQtOTllYS1hOTgzN2M3Yjk1ZTIiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJuYW1lIjoiVGVzdCBVc2VyIiwiZXhwIjoxNzc1NjQ1MjM5fQ.UZV-9TAe8VHsZdIbFBliMcd5tSe2c6C1cdI3chxBnjs
 
 ###
 
@@ -11,6 +54,7 @@ GET http://localhost:5050/api/plants/5
 
 POST http://localhost:5050/api/plants
 Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmYzk4NmYwMC1iNTUyLTRmZmQtOTllYS1hOTgzN2M3Yjk1ZTIiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJuYW1lIjoiVGVzdCBVc2VyIiwiZXhwIjoxNzc1NjQ1MjM5fQ.UZV-9TAe8VHsZdIbFBliMcd5tSe2c6C1cdI3chxBnjs
 
 {
     "name": "Plant",

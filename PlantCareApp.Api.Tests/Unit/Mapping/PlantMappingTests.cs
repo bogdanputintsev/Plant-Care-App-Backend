@@ -74,10 +74,10 @@ public class PlantMappingTests
     public void ToEntity_MapsAllFields_AndSetsDatesTodayUtc()
     {
         var currentDate = DateOnly.FromDateTime(DateTime.UtcNow);
-        
+        const string userId = "test-user-id";
         var createDto = new CreatePlantDto("Name", 1, 3, "Simple plant");
 
-        var plant = createDto.ToEntity();
+        var plant = createDto.ToEntity(userId);
         plant.Name.Should().Be(createDto.Name);
         plant.TypeId.Should().Be(createDto.TypeId);
         plant.WateringIntervalDays.Should().Be(createDto.WateringIntervalDays);

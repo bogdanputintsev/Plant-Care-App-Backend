@@ -1,5 +1,9 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using PlantCareApp.Api.Models;
+using PlantCareApp.Api.Services;
 
 namespace PlantCareApp.Api.Data;
 
@@ -35,5 +39,24 @@ public static class DataExtensions
                 context.SaveChanges();
             }));
         
+        builder.Services.AddIdentityCore<ApplicationUser>()
+            .AddEntityFrameworkStores<AppDbContext>();
+        
+        var secret = builder.Configuration["Jwt:Secret"]!;
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = true
+                };
+            });
+
+        builder.Services.AddAuthorization();
+        builder.Services.AddScoped<TokenService>();
     }
 }
