@@ -17,25 +17,39 @@ public static class WeatherMappingExtensions
                 Temperature: data.Temperature2m.FirstOrDefault(),
                 RainProbability: data.PrecipitationProbability.FirstOrDefault(),
                 Humidity: data.RelativeHumidity2m.FirstOrDefault(),
-                Condition: MapCondition(data.WeatherCode.FirstOrDefault()),
+                Condition: WeatherCondition.MapCondition(data.WeatherCode.FirstOrDefault()),
                 Description: MapDescription(data.WeatherCode.FirstOrDefault())
             );
         }
     }
 
-    private static string MapCondition(int wmoCode) => wmoCode switch
+    public static class WeatherCondition
     {
-        0 => "sunny",
-        1 or 2 => "partly-cloudy",
-        3 or 45 or 48 => "cloudy",
-        >= 51 and <= 67 => "rainy",
-        >= 71 and <= 77 => "cloudy",
-        >= 80 and <= 82 => "rainy",
-        85 or 86 => "cloudy",
-        95 or 96 or 99 => "stormy",
-        _ => "cloudy"
-    };
+        private const string Sunny = "sunny";
+        private const string PartlyCloudy = "partly-cloudy";
+        private const string Cloudy = "cloudy";
+        private const string Rainy = "rainy";
+        private const string Stormy = "stormy";
 
+        public static string MapCondition(int wmoCode) => wmoCode switch
+        {
+            0 => Sunny,
+            1 or 2 => PartlyCloudy,
+            3 or 45 or 48 => Cloudy,
+            >= 51 and <= 67 => Rainy,
+            >= 71 and <= 77 => Cloudy,
+            >= 80 and <= 82 => Rainy,
+            85 or 86 => Cloudy,
+            95 or 96 or 99 => Stormy,
+            _ => Cloudy
+        };
+        
+        public static bool IsRaining(string? weatherCondition)
+        {
+            return weatherCondition is Rainy or Stormy;
+        }
+    };
+    
     private static string MapDescription(int wmoCode) => wmoCode switch
     {
         0 => "Clear sky",
